@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
             // Sandbox expired or unavailable, create new one with autoPause
             // autoPause: sandbox will pause (not die) after timeout, can be resumed later
             sandbox = await Sandbox.create('base', {
-              timeoutMs: 24 * 60 * 60 * 1000,  // 24 hour timeout
+              timeoutMs: 60 * 60 * 1000,  // 1 hour timeout (max allowed)
             });
             newSandboxId = sandbox.sandboxId;
             await sandbox.commands.run(`mkdir -p ${WORKSPACE_PATH}`);
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         } else {
           // Fresh start with autoPause enabled
           sandbox = await Sandbox.create('base', {
-            timeoutMs: 24 * 60 * 60 * 1000,  // 24 hour timeout
+            timeoutMs: 60 * 60 * 1000,  // 1 hour timeout (max allowed)
           });
           newSandboxId = sandbox.sandboxId;
           await sandbox.commands.run(`mkdir -p ${WORKSPACE_PATH}`);
