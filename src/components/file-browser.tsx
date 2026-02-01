@@ -14,6 +14,7 @@ interface FileBrowserProps {
   onFileSelect?: (path: string) => void;
   selectedFile?: string | null;
   isLoading?: boolean;
+  systemPrompt?: string;
 }
 
 function FileIcon({ type }: { type: 'file' | 'directory' }) {
@@ -100,28 +101,62 @@ function FileTreeNode({
   );
 }
 
-export function FileBrowser({ files, onFileSelect, selectedFile, isLoading }: FileBrowserProps) {
+export function FileBrowser({ files, onFileSelect, selectedFile, isLoading, systemPrompt }: FileBrowserProps) {
+  const [activeTab, setActiveTab] = useState<'files' | 'prompt'>('files');
+
   return (
     <div className="h-full flex flex-col">
-      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Files</h2>
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('files')}
+          className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'files'
+              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          Files
+        </button>
+        <button
+          onClick={() => setActiveTab('prompt')}
+          className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'prompt'
+              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          System Prompt
+        </button>
       </div>
-      <div className="flex-1 overflow-auto p-2">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-20">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
+        {activeTab === 'files' ? (
+          <div className="p-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-20">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : files.length === 0 ? (
+              <p className="text-sm text-gray-500 p-2">No files yet</p>
+            ) : (
+              files.map((node) => (
+                <FileTreeNode
+                  key={node.path}
+                  node={node}
+                  onFileSelect={onFileSelect}
+                  selectedFile={selectedFile}
+                />
+              ))
+            )}
           </div>
-        ) : files.length === 0 ? (
-          <p className="text-sm text-gray-500 p-2">No files yet</p>
         ) : (
-          files.map((node) => (
-            <FileTreeNode
-              key={node.path}
-              node={node}
-              onFileSelect={onFileSelect}
-              selectedFile={selectedFile}
-            />
-          ))
+          <div className="p-3">
+            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono leading-relaxed">
+              {systemPrompt || 'No system prompt configured'}
+            </pre>
+          </div>
         )}
       </div>
     </div>

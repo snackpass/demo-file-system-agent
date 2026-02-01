@@ -112,7 +112,7 @@ async function executeTool(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, sandboxId, userName } = body;
+    const { message, sandboxId, userName, history = [] } = body;
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -140,8 +140,12 @@ export async function POST(request: NextRequest) {
     // Prepare system prompt with user name
     const systemPrompt = SYSTEM_PROMPT.replace('{userName}', userName || 'User');
 
-    // Run the agentic loop
+    // Build messages from history + new message
     const messages: Anthropic.MessageParam[] = [
+      ...history.map((msg: { role: string; content: string }) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
       { role: 'user', content: message },
     ];
 

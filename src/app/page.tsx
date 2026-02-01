@@ -6,6 +6,7 @@ import { FileBrowser, FileNode } from '@/components/file-browser';
 import { FileViewer } from '@/components/file-viewer';
 import { UserSettings } from '@/components/user-settings';
 import { MessageProps } from '@/components/message';
+import { SYSTEM_PROMPT_DISPLAY } from '@/lib/constants';
 
 const SANDBOX_ID_KEY = 'exec-assistant-sandbox-id';
 const USER_NAME_KEY = 'exec-assistant-user-name';
@@ -91,6 +92,7 @@ export default function Home() {
             message,
             sandboxId,
             userName: userName || 'User',
+            history: messages, // Pass conversation history
           }),
         });
 
@@ -206,6 +208,7 @@ export default function Home() {
             onFileSelect={handleFileSelect}
             selectedFile={selectedFile}
             isLoading={isLoadingFiles}
+            systemPrompt={SYSTEM_PROMPT_DISPLAY}
           />
         </aside>
 
