@@ -13,7 +13,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const SANDBOX_ID_KEY = 'exec-assistant-sandbox-id';
-const USER_NAME_KEY = 'exec-assistant-user-name';
 const SYSTEM_PROMPT_KEY = 'exec-assistant-system-prompt';
 
 // Convert FileNode tree to a string representation
@@ -37,7 +36,7 @@ function filesToTreeString(nodes: FileNode[], indent = ''): string {
 export default function Home() {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [sandboxId, setSandboxId] = useState<string | null>(null);
-  const [userName, setUserName] = useState('');
+  const [userName] = useState('User');
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT_DISPLAY);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -70,14 +69,10 @@ export default function Home() {
   // Load from localStorage on mount
   useEffect(() => {
     const storedSandboxId = localStorage.getItem(SANDBOX_ID_KEY);
-    const storedUserName = localStorage.getItem(USER_NAME_KEY);
     const storedSystemPrompt = localStorage.getItem(SYSTEM_PROMPT_KEY);
 
     if (storedSandboxId) {
       setSandboxId(storedSandboxId);
-    }
-    if (storedUserName) {
-      setUserName(storedUserName);
     }
     if (storedSystemPrompt) {
       setSystemPrompt(storedSystemPrompt);
@@ -117,10 +112,6 @@ export default function Home() {
     checkSandbox();
   }, [initialized, sandboxId]);
 
-  const handleNameChange = useCallback((name: string) => {
-    setUserName(name);
-    localStorage.setItem(USER_NAME_KEY, name);
-  }, []);
 
   // Save system prompt to localStorage
   const handleSystemPromptChange = useCallback((prompt: string) => {
@@ -223,8 +214,6 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <UserSettings
-            userName={userName}
-            onNameChange={handleNameChange}
             onClearChat={handleClearChat}
             onResetSession={handleResetSession}
           />
