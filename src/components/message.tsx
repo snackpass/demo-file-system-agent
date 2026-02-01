@@ -29,16 +29,18 @@ function getToolIcon(toolName: string): string {
   }
 }
 
-function getToolDisplayName(toolName: string): string {
+function getToolDescription(toolName: string, input: Record<string, unknown>): string {
   switch (toolName) {
     case 'write_file':
-      return 'write';
+      return `wrote ${input.path}`;
     case 'read_file':
-      return 'read';
-    case 'run_command':
-      return 'command';
+      return `read ${input.path}`;
+    case 'run_command': {
+      const cmd = String(input.command);
+      return `ran: ${cmd.slice(0, 30)}${cmd.length > 30 ? '...' : ''}`;
+    }
     case 'list_directory':
-      return 'list';
+      return `listed ${input.path || '/home/user'}`;
     default:
       return toolName;
   }
@@ -66,7 +68,7 @@ export function Message({ role, content, toolCalls }: MessageProps) {
                 title={JSON.stringify(tool.input, null, 2)}
               >
                 <span>{getToolIcon(tool.name)}</span>
-                <span>{getToolDisplayName(tool.name)}</span>
+                <span>{getToolDescription(tool.name, tool.input)}</span>
               </span>
             ))}
           </div>

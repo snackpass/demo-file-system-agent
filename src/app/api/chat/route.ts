@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(encodeSSE('status', { status: 'thinking' })));
 
         const anthropicStream = anthropic.messages.stream({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-5-20251101',
           max_tokens: 4096,
           system: systemPrompt,
           tools,
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
 
           // Continue with streaming for next response
           const nextStream = anthropic.messages.stream({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-opus-4-5-20251101',
             max_tokens: 4096,
             system: systemPrompt,
             tools,
