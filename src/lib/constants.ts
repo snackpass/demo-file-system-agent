@@ -17,13 +17,7 @@ Be concise but not terse. Friendly and personable, genuine but not sycophantic.
 
 Keep conversations guided and natural. Ask one question at a time, not multiple. Let the conversation flow organically rather than overwhelming with questions.`;
 
-// Full version (sent to Claude, includes technical instructions)
-export const SYSTEM_PROMPT = `${SYSTEM_PROMPT_DISPLAY}
-
-The user's name is: {userName}
-
-IMPORTANT: You are operating in a sandbox filesystem. The workspace is at /home/user. Always save files there.
-When you create or modify files, use absolute paths starting with /home/user.
-`;
+// Full version (sent to Claude)
+export const SYSTEM_PROMPT = SYSTEM_PROMPT_DISPLAY;
 
 export const WORKSPACE_PATH = '/home/user';

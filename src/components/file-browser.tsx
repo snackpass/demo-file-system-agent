@@ -5,6 +5,7 @@ import { ChevronRight, File, Folder } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface FileNode {
   name: string;
@@ -46,29 +47,30 @@ function FileTreeNode({
 
   return (
     <div>
-      <div
-        className={`flex items-center gap-2 py-1.5 px-2 cursor-pointer rounded-md transition-colors hover:bg-sidebar-accent ${
-          isSelected ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+      <button
+        type="button"
+        className={`flex items-center gap-2 py-1.5 px-2 w-full text-left rounded-md transition-colors hover:bg-accent ${
+          isSelected ? 'bg-accent text-accent-foreground' : ''
         }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
       >
         {node.type === 'directory' ? (
           <ChevronRight
-            className={`h-4 w-4 text-sidebar-foreground/50 transition-transform ${
+            className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${
               isExpanded ? 'rotate-90' : ''
             }`}
           />
         ) : (
-          <span className="w-4" />
+          <span className="w-4 shrink-0" />
         )}
         {node.type === 'directory' ? (
-          <Folder className="h-4 w-4 text-amber-500" />
+          <Folder className="h-4 w-4 text-amber-500 shrink-0" />
         ) : (
-          <File className="h-4 w-4 text-sidebar-foreground/60" />
+          <File className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
         <span className="text-sm truncate">{node.name}</span>
-      </div>
+      </button>
       {node.type === 'directory' && isExpanded && node.children && (
         <div>
           {node.children.map((child) => (
@@ -113,32 +115,28 @@ export function FileBrowser({
   };
 
   return (
-    <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
-      <Tabs defaultValue="files" className="flex-1 flex flex-col">
-        <TabsList className="w-full rounded-none border-b border-sidebar-border bg-transparent p-0">
-          <TabsTrigger
-            value="files"
-            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar-primary data-[state=active]:bg-transparent"
-          >
-            Files
-          </TabsTrigger>
-          <TabsTrigger
-            value="prompt"
-            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar-primary data-[state=active]:bg-transparent"
-          >
-            System Prompt
-          </TabsTrigger>
-        </TabsList>
+    <div className="h-full flex flex-col">
+      <Tabs defaultValue="files" className="flex-1 flex flex-col min-h-0">
+        <div className="p-2 border-b shrink-0">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="files">
+              Files
+            </TabsTrigger>
+            <TabsTrigger value="prompt">
+              Prompt
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="files" className="flex-1 m-0">
+        <TabsContent value="files" className="flex-1 m-0 min-h-0">
           <ScrollArea className="h-full">
             <div className="p-2">
               {isLoading ? (
                 <div className="flex items-center justify-center h-20">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sidebar-primary"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                 </div>
               ) : files.length === 0 ? (
-                <p className="text-sm text-sidebar-foreground/60 p-2">No files yet</p>
+                <p className="text-sm text-muted-foreground px-2 py-4 text-center">No files yet</p>
               ) : (
                 files.map((node) => (
                   <FileTreeNode
@@ -153,16 +151,18 @@ export function FileBrowser({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="prompt" className="flex-1 m-0 flex flex-col">
+        <TabsContent value="prompt" className="flex-1 m-0 flex flex-col min-h-0 overflow-hidden">
           {isEditing ? (
-            <div className="flex-1 flex flex-col p-3">
-              <textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="flex-1 min-h-[200px] text-xs font-mono p-2 border border-sidebar-border rounded resize-none focus:outline-none focus:ring-2 focus:ring-sidebar-primary bg-sidebar text-sidebar-foreground"
-                placeholder="Enter system prompt..."
-              />
-              <div className="flex gap-2 mt-2">
+            <div className="flex-1 flex flex-col p-3 gap-2 min-h-0 overflow-hidden">
+              <ScrollArea className="flex-1 min-h-0">
+                <Textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="min-h-[200px] text-xs font-mono"
+                  placeholder="Enter system prompt..."
+                />
+              </ScrollArea>
+              <div className="flex gap-2 shrink-0">
                 <Button onClick={handleSave} size="sm" className="flex-1">
                   Save
                 </Button>
@@ -172,9 +172,9 @@ export function FileBrowser({
               </div>
             </div>
           ) : (
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <pre className="text-xs text-sidebar-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-3">
+                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
                   {systemPrompt || 'No system prompt configured'}
                 </pre>
                 {onSystemPromptChange && (

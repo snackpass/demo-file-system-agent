@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
 
   const body = await request.json();
-  const { message, sandboxId, userName, history = [], customSystemPrompt, directorySnapshot } = body;
+  const { message, sandboxId, history = [], customSystemPrompt, directorySnapshot } = body;
 
   if (!message) {
     return new Response(
@@ -162,14 +162,12 @@ export async function POST(request: NextRequest) {
 
         controller.enqueue(encoder.encode(encodeSSE('status', { status: 'sandbox_ready' })));
 
-        // Prepare system prompt with user name
         // Use custom prompt if provided, otherwise use default
-        const basePrompt = customSystemPrompt || SYSTEM_PROMPT;
-        let systemPrompt = basePrompt.replace('{userName}', userName || 'User');
+        let systemPrompt = customSystemPrompt || SYSTEM_PROMPT;
 
         // Add technical instructions if using custom prompt
         if (customSystemPrompt) {
-          systemPrompt += `\n\nThe user's name is: ${userName || 'User'}\n\nIMPORTANT: You are operating in a sandbox filesystem. The workspace is at /home/user. Always save files there.\nWhen you create or modify files, use absolute paths starting with /home/user.`;
+          systemPrompt += `\n\nIMPORTANT: You are operating in a sandbox filesystem. The workspace is at /home/user. Always save files there.\nWhen you create or modify files, use absolute paths starting with /home/user.`;
         }
 
         // Add directory snapshot if provided

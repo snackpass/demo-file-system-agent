@@ -158,7 +158,6 @@ export function useChat(options: UseChatOptions = {}) {
     async (
       message: string,
       sandboxId: string | null,
-      userName: string,
       customSystemPrompt?: string,
       directorySnapshot?: string
     ) => {
@@ -184,7 +183,6 @@ export function useChat(options: UseChatOptions = {}) {
         {
           message,
           sandboxId,
-          userName: userName || 'User',
           history,
           customSystemPrompt,
           directorySnapshot,

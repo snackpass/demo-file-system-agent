@@ -9,7 +9,7 @@ import { UserSettings } from '@/components/user-settings';
 import { useChat } from '@/hooks/useChat';
 import { SYSTEM_PROMPT_DISPLAY } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const SANDBOX_ID_KEY = 'exec-assistant-sandbox-id';
@@ -36,7 +36,6 @@ function filesToTreeString(nodes: FileNode[], indent = ''): string {
 export default function Home() {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [sandboxId, setSandboxId] = useState<string | null>(null);
-  const [userName] = useState('User');
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT_DISPLAY);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -126,9 +125,9 @@ export default function Home() {
       const directorySnapshot = files.length > 0
         ? `/home/user/\n${filesToTreeString(files)}`
         : undefined;
-      await sendMessage(message, sandboxId, userName, systemPrompt, directorySnapshot);
+      await sendMessage(message, sandboxId, systemPrompt, directorySnapshot);
     },
-    [sendMessage, sandboxId, userName, systemPrompt, files]
+    [sendMessage, sandboxId, systemPrompt, files]
   );
 
   const handleClearChat = useCallback(() => {
@@ -206,7 +205,8 @@ export default function Home() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="w-72 p-0" aria-describedby={undefined}>
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
               {sidebarContent}
             </SheetContent>
           </Sheet>

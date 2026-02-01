@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ElementRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send } from 'lucide-react';
 import { Message, MessageProps } from './message';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { StreamBlock } from '@/hooks/useChat';
 
 interface ChatProps {
@@ -89,8 +90,8 @@ function StreamingMessage({
   const waitingForResponse = allToolsCompleted && lastBlock?.type === 'tool';
 
   return (
-    <div className="flex justify-start mb-4">
-      <div className="max-w-[85%] sm:max-w-[80%] bg-muted rounded-lg px-4 py-2">
+    <div className="flex justify-start mb-3">
+      <div className="max-w-[90%] sm:max-w-[80%] bg-muted rounded-lg px-3 py-2 sm:px-4">
         {/* Status indicator (only when no blocks yet) */}
         {status && blocks.length === 0 && (
           <div className="flex items-center gap-2">
@@ -182,15 +183,15 @@ export function Chat({
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="border-t p-4">
+      <form onSubmit={handleSubmit} className="border-t p-3 sm:p-4">
         <div className="flex gap-2">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground min-h-[44px]"
+            className="flex-1 min-h-[44px] max-h-32"
             rows={1}
             disabled={isLoading}
           />
@@ -198,7 +199,7 @@ export function Chat({
             type="submit"
             disabled={!input.trim() || isLoading}
             size="icon"
-            className="h-11 w-11"
+            className="h-11 w-11 shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>

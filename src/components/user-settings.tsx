@@ -1,7 +1,15 @@
 'use client';
 
-import { Trash2, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Trash2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +19,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 interface UserSettingsProps {
@@ -23,43 +30,54 @@ export function UserSettings({
   onResetSession,
   onClearChat,
 }: UserSettingsProps) {
+  const [showResetDialog, setShowResetDialog] = useState(false);
+
   return (
-    <div className="flex items-center gap-1 sm:gap-2">
-      <Button
-        onClick={onClearChat}
-        size="sm"
-        variant="outline"
-        className="h-8"
-      >
-        <Trash2 className="h-4 w-4 sm:mr-1" />
-        <span className="hidden sm:inline">Clear Chat</span>
-      </Button>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-8"
-          >
-            <RotateCcw className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Reset All</span>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Settings</span>
           </Button>
-        </AlertDialogTrigger>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={onClearChat}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear Chat
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setShowResetDialog(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset Session
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Reset Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reset your session, clear all chat history, and create a new sandbox. This action cannot be undone.
+              This will clear all chat history, delete the sandbox, and reset the system prompt. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={onResetSession}>
+            <AlertDialogAction
+              onClick={() => {
+                onResetSession();
+                setShowResetDialog(false);
+              }}
+            >
               Reset
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
