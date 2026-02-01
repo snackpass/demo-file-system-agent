@@ -5,34 +5,77 @@ import { Chat } from '@/components/chat';
 import { FileBrowser, FileNode } from '@/components/file-browser';
 import { FileViewer } from '@/components/file-viewer';
 import { UserSettings } from '@/components/user-settings';
-import { MessageProps } from '@/components/message';
+import { useChat } from '@/hooks/useChat';
 import { SYSTEM_PROMPT_DISPLAY } from '@/lib/constants';
 
 const SANDBOX_ID_KEY = 'exec-assistant-sandbox-id';
 const USER_NAME_KEY = 'exec-assistant-user-name';
+const SYSTEM_PROMPT_KEY = 'exec-assistant-system-prompt';
+
+// Convert FileNode tree to a string representation
+function filesToTreeString(nodes: FileNode[], indent = ''): string {
+  let result = '';
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    const isLast = i === nodes.length - 1;
+    const prefix = isLast ? '└── ' : '├── ';
+    const childIndent = indent + (isLast ? '    ' : '│   ');
+
+    result += `${indent}${prefix}${node.name}${node.type === 'directory' ? '/' : ''}\n`;
+
+    if (node.children && node.children.length > 0) {
+      result += filesToTreeString(node.children, childIndent);
+    }
+  }
+  return result;
+}
 
 export default function Home() {
-  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT_DISPLAY);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [isLoadingFileContent, setIsLoadingFileContent] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+  const handleFilesUpdate = useCallback((newFiles: FileNode[]) => {
+    setFiles(newFiles);
+  }, []);
+
+  const handleSandboxIdChange = useCallback((newSandboxId: string) => {
+    setSandboxId(newSandboxId);
+    localStorage.setItem(SANDBOX_ID_KEY, newSandboxId);
+  }, []);
+
+  const {
+    messages,
+    streamingBlocks,
+    status,
+    isLoading,
+    sendMessage,
+    clearMessages,
+  } = useChat({
+    onFilesUpdate: handleFilesUpdate,
+    onSandboxIdChange: handleSandboxIdChange,
+  });
+
   // Load from localStorage on mount
   useEffect(() => {
     const storedSandboxId = localStorage.getItem(SANDBOX_ID_KEY);
     const storedUserName = localStorage.getItem(USER_NAME_KEY);
+    const storedSystemPrompt = localStorage.getItem(SYSTEM_PROMPT_KEY);
 
     if (storedSandboxId) {
       setSandboxId(storedSandboxId);
     }
     if (storedUserName) {
       setUserName(storedUserName);
+    }
+    if (storedSystemPrompt) {
+      setSystemPrompt(storedSystemPrompt);
     }
     setInitialized(true);
   }, []);
@@ -78,69 +121,30 @@ export default function Home() {
     localStorage.setItem(USER_NAME_KEY, name);
   }, []);
 
+  // Save system prompt to localStorage
+  const handleSystemPromptChange = useCallback((prompt: string) => {
+    setSystemPrompt(prompt);
+    localStorage.setItem(SYSTEM_PROMPT_KEY, prompt);
+  }, []);
+
   // Send message to agent
   const handleSendMessage = useCallback(
     async (message: string) => {
-      setIsLoading(true);
-      setMessages((prev) => [...prev, { role: 'user', content: message }]);
-
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            sandboxId,
-            userName: userName || 'User',
-            history: messages, // Pass conversation history
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          setMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: `Error: ${data.error}` },
-          ]);
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: data.response },
-          ]);
-
-          // Update sandbox ID if new
-          if (data.sandboxId && data.sandboxId !== sandboxId) {
-            setSandboxId(data.sandboxId);
-            localStorage.setItem(SANDBOX_ID_KEY, data.sandboxId);
-          }
-
-          // Update files
-          if (data.files) {
-            setFiles(data.files);
-          }
-        }
-      } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`,
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
+      // Generate directory snapshot if files exist
+      const directorySnapshot = files.length > 0
+        ? `/home/user/\n${filesToTreeString(files)}`
+        : undefined;
+      await sendMessage(message, sandboxId, userName, systemPrompt, directorySnapshot);
     },
-    [sandboxId, userName]
+    [sendMessage, sandboxId, userName, systemPrompt, files]
   );
 
   // Clear chat only (keep files)
   const handleClearChat = useCallback(() => {
-    setMessages([]);
-  }, []);
+    clearMessages();
+  }, [clearMessages]);
 
-  // Reset everything (kill sandbox, clear state)
+  // Reset everything (kill sandbox, clear state, reset system prompt)
   const handleResetSession = useCallback(async () => {
     if (sandboxId) {
       try {
@@ -151,12 +155,14 @@ export default function Home() {
     }
 
     localStorage.removeItem(SANDBOX_ID_KEY);
+    localStorage.removeItem(SYSTEM_PROMPT_KEY);
     setSandboxId(null);
-    setMessages([]);
+    setSystemPrompt(SYSTEM_PROMPT_DISPLAY); // Reset to default
+    clearMessages();
     setFiles([]);
     setSelectedFile(null);
     setFileContent('');
-  }, [sandboxId]);
+  }, [sandboxId, clearMessages]);
 
   // Load file content when selected
   const handleFileSelect = useCallback(
@@ -208,7 +214,8 @@ export default function Home() {
             onFileSelect={handleFileSelect}
             selectedFile={selectedFile}
             isLoading={isLoadingFiles}
-            systemPrompt={SYSTEM_PROMPT_DISPLAY}
+            systemPrompt={systemPrompt}
+            onSystemPromptChange={handleSystemPromptChange}
           />
         </aside>
 
@@ -218,6 +225,8 @@ export default function Home() {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
+            streamingBlocks={streamingBlocks}
+            status={status}
           />
         </main>
       </div>

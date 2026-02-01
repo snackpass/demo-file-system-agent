@@ -15,6 +15,7 @@ interface FileBrowserProps {
   selectedFile?: string | null;
   isLoading?: boolean;
   systemPrompt?: string;
+  onSystemPromptChange?: (prompt: string) => void;
 }
 
 function FileIcon({ type }: { type: 'file' | 'directory' }) {
@@ -101,8 +102,32 @@ function FileTreeNode({
   );
 }
 
-export function FileBrowser({ files, onFileSelect, selectedFile, isLoading, systemPrompt }: FileBrowserProps) {
+export function FileBrowser({
+  files,
+  onFileSelect,
+  selectedFile,
+  isLoading,
+  systemPrompt,
+  onSystemPromptChange,
+}: FileBrowserProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'prompt'>('files');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(systemPrompt || '');
+
+  const handleEdit = () => {
+    setEditValue(systemPrompt || '');
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    onSystemPromptChange?.(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(systemPrompt || '');
+    setIsEditing(false);
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -152,10 +177,45 @@ export function FileBrowser({ files, onFileSelect, selectedFile, isLoading, syst
             )}
           </div>
         ) : (
-          <div className="p-3">
-            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono leading-relaxed">
-              {systemPrompt || 'No system prompt configured'}
-            </pre>
+          <div className="p-3 flex flex-col h-full">
+            {isEditing ? (
+              <>
+                <textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="flex-1 min-h-[200px] text-xs font-mono p-2 border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="Enter system prompt..."
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 px-3 py-1.5 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <pre className="flex-1 text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono leading-relaxed overflow-auto">
+                  {systemPrompt || 'No system prompt configured'}
+                </pre>
+                {onSystemPromptChange && (
+                  <button
+                    onClick={handleEdit}
+                    className="mt-2 px-3 py-1.5 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Edit Prompt
+                  </button>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

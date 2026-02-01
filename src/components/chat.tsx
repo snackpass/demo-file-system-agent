@@ -1,15 +1,125 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Message, MessageProps } from './message';
+import { StreamBlock } from '@/hooks/useChat';
 
 interface ChatProps {
   messages: MessageProps[];
   onSendMessage: (message: string) => void;
   isLoading: boolean;
+  streamingBlocks?: StreamBlock[];
+  status?: string;
 }
 
-export function Chat({ messages, onSendMessage, isLoading }: ChatProps) {
+function getToolIcon(toolName: string): string {
+  switch (toolName) {
+    case 'write_file':
+      return '📝';
+    case 'read_file':
+      return '📖';
+    case 'run_command':
+      return '⚡';
+    case 'list_directory':
+      return '📁';
+    default:
+      return '🔧';
+  }
+}
+
+function getToolDescription(toolName: string, input: Record<string, unknown>): string {
+  switch (toolName) {
+    case 'write_file':
+      return `Writing to ${input.path}`;
+    case 'read_file':
+      return `Reading ${input.path}`;
+    case 'run_command':
+      return `Running: ${String(input.command).slice(0, 40)}${String(input.command).length > 40 ? '...' : ''}`;
+    case 'list_directory':
+      return `Listing ${input.path || '/home/user'}`;
+    default:
+      return toolName;
+  }
+}
+
+// Render a single streaming block
+function StreamBlockRenderer({ block }: { block: StreamBlock }) {
+  if (block.type === 'text') {
+    return (
+      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-pre:bg-gray-200 dark:prose-pre:bg-gray-700 prose-code:text-pink-600 dark:prose-code:text-pink-400">
+        <ReactMarkdown>{block.content}</ReactMarkdown>
+      </div>
+    );
+  }
+
+  // Tool block
+  return (
+    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 py-1">
+      {block.completed ? (
+        <span className="text-green-500 w-4 text-center">✓</span>
+      ) : (
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+      )}
+      <span>{getToolIcon(block.name)}</span>
+      <span>{getToolDescription(block.name, block.input)}</span>
+    </div>
+  );
+}
+
+// Component for showing the in-progress streaming response
+function StreamingMessage({
+  blocks,
+  status,
+}: {
+  blocks: StreamBlock[];
+  status: string;
+}) {
+  const hasContent = blocks.length > 0 || status;
+
+  if (!hasContent) return null;
+
+  // Check if we're waiting for response after tools completed
+  const allToolsCompleted = blocks.length > 0 &&
+    blocks.every(b => b.type === 'text' || (b.type === 'tool' && b.completed));
+  const lastBlock = blocks[blocks.length - 1];
+  const waitingForResponse = allToolsCompleted && lastBlock?.type === 'tool';
+
+  return (
+    <div className="flex justify-start mb-4">
+      <div className="max-w-[80%] bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-4 py-2">
+        {/* Status indicator (only when no blocks yet) */}
+        {status && blocks.length === 0 && (
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{status}</span>
+          </div>
+        )}
+
+        {/* Render blocks in order */}
+        {blocks.map((block, index) => (
+          <StreamBlockRenderer key={index} block={block} />
+        ))}
+
+        {/* Show waiting indicator if all tools completed but no final text */}
+        {waitingForResponse && (
+          <div className="flex items-center gap-2 mt-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Generating response...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function Chat({
+  messages,
+  onSendMessage,
+  isLoading,
+  streamingBlocks = [],
+  status = '',
+}: ChatProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -20,7 +130,7 @@ export function Chat({ messages, onSendMessage, isLoading }: ChatProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingBlocks, status]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +147,13 @@ export function Chat({ messages, onSendMessage, isLoading }: ChatProps) {
     }
   };
 
+  // Check if we should show the streaming message
+  const showStreamingMessage = isLoading && (streamingBlocks.length > 0 || status);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !isLoading ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             <div className="text-center">
               <h2 className="text-xl font-semibold mb-2">Executive Assistant</h2>
@@ -50,17 +163,16 @@ export function Chat({ messages, onSendMessage, isLoading }: ChatProps) {
             </div>
           </div>
         ) : (
-          messages.map((msg, index) => <Message key={index} {...msg} />)
-        )}
-        {isLoading && (
-          <div className="flex justify-start mb-4">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Thinking...</span>
-              </div>
-            </div>
-          </div>
+          <>
+            {messages.map((msg, index) => (
+              <Message key={index} {...msg} />
+            ))}
+
+            {/* Streaming message with blocks in order */}
+            {showStreamingMessage && (
+              <StreamingMessage blocks={streamingBlocks} status={status} />
+            )}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
