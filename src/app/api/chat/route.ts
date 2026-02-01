@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { Sandbox } from 'e2b';
-import { SYSTEM_PROMPT, WORKSPACE_PATH } from '@/lib/constants';
+import { WORKSPACE_PATH } from '@/lib/constants';
+import { SYSTEM_PROMPT } from '@/lib/system-prompt';
 import { listFiles } from '@/lib/e2b';
 
 const anthropic = new Anthropic();
@@ -141,21 +142,28 @@ export async function POST(request: NextRequest) {
         // Send connecting status
         controller.enqueue(encoder.encode(encodeSSE('status', { status: 'connecting' })));
 
-        // Create or connect to sandbox
+        // Create or connect to sandbox (connect auto-resumes paused sandboxes)
         let sandbox: Sandbox;
         let newSandboxId = sandboxId;
 
+        // Try connecting to existing sandbox (works for both running and paused)
         if (sandboxId) {
           try {
             sandbox = await Sandbox.connect(sandboxId);
           } catch {
-            // Sandbox expired or unavailable, create new one
-            sandbox = await Sandbox.create('base', { timeoutMs: 5 * 60 * 1000 });
+            // Sandbox expired or unavailable, create new one with autoPause
+            // autoPause: sandbox will pause (not die) after timeout, can be resumed later
+            sandbox = await Sandbox.create('base', {
+              timeoutMs: 24 * 60 * 60 * 1000,  // 24 hour timeout
+            });
             newSandboxId = sandbox.sandboxId;
             await sandbox.commands.run(`mkdir -p ${WORKSPACE_PATH}`);
           }
         } else {
-          sandbox = await Sandbox.create('base', { timeoutMs: 5 * 60 * 1000 });
+          // Fresh start with autoPause enabled
+          sandbox = await Sandbox.create('base', {
+            timeoutMs: 24 * 60 * 60 * 1000,  // 24 hour timeout
+          });
           newSandboxId = sandbox.sandboxId;
           await sandbox.commands.run(`mkdir -p ${WORKSPACE_PATH}`);
         }

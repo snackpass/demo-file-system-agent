@@ -7,7 +7,7 @@ import { FileBrowser, FileNode } from '@/components/file-browser';
 import { FileViewer } from '@/components/file-viewer';
 import { UserSettings } from '@/components/user-settings';
 import { useChat } from '@/hooks/useChat';
-import { SYSTEM_PROMPT_DISPLAY } from '@/lib/constants';
+import { SYSTEM_PROMPT_DISPLAY } from '@/lib/system-prompt';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
