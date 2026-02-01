@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Menu } from 'lucide-react';
 import { Chat } from '@/components/chat';
 import { FileBrowser, FileNode } from '@/components/file-browser';
 import { FileViewer } from '@/components/file-viewer';
 import { UserSettings } from '@/components/user-settings';
 import { useChat } from '@/hooks/useChat';
 import { SYSTEM_PROMPT_DISPLAY } from '@/lib/constants';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const SANDBOX_ID_KEY = 'exec-assistant-sandbox-id';
 const USER_NAME_KEY = 'exec-assistant-user-name';
@@ -40,6 +44,7 @@ export default function Home() {
   const [fileContent, setFileContent] = useState('');
   const [isLoadingFileContent, setIsLoadingFileContent] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleFilesUpdate = useCallback((newFiles: FileNode[]) => {
     setFiles(newFiles);
@@ -91,12 +96,10 @@ export default function Home() {
         const data = await response.json();
 
         if (!data.healthy) {
-          // Sandbox is dead, clear it
           localStorage.removeItem(SANDBOX_ID_KEY);
           setSandboxId(null);
           setFiles([]);
         } else {
-          // Load files
           const filesResponse = await fetch(`/api/files?sandboxId=${sandboxId}`);
           const filesData = await filesResponse.json();
           if (filesData.files) {
@@ -104,7 +107,6 @@ export default function Home() {
           }
         }
       } catch {
-        // Sandbox unavailable
         localStorage.removeItem(SANDBOX_ID_KEY);
         setSandboxId(null);
       } finally {
@@ -115,7 +117,6 @@ export default function Home() {
     checkSandbox();
   }, [initialized, sandboxId]);
 
-  // Save userName to localStorage
   const handleNameChange = useCallback((name: string) => {
     setUserName(name);
     localStorage.setItem(USER_NAME_KEY, name);
@@ -127,7 +128,7 @@ export default function Home() {
     localStorage.setItem(SYSTEM_PROMPT_KEY, prompt);
   }, []);
 
-  // Send message to agent
+  // Send message to agent with streaming
   const handleSendMessage = useCallback(
     async (message: string) => {
       // Generate directory snapshot if files exist
@@ -139,7 +140,6 @@ export default function Home() {
     [sendMessage, sandboxId, userName, systemPrompt, files]
   );
 
-  // Clear chat only (keep files)
   const handleClearChat = useCallback(() => {
     clearMessages();
   }, [clearMessages]);
@@ -157,20 +157,20 @@ export default function Home() {
     localStorage.removeItem(SANDBOX_ID_KEY);
     localStorage.removeItem(SYSTEM_PROMPT_KEY);
     setSandboxId(null);
-    setSystemPrompt(SYSTEM_PROMPT_DISPLAY); // Reset to default
+    setSystemPrompt(SYSTEM_PROMPT_DISPLAY);
     clearMessages();
     setFiles([]);
     setSelectedFile(null);
     setFileContent('');
   }, [sandboxId, clearMessages]);
 
-  // Load file content when selected
   const handleFileSelect = useCallback(
     async (path: string) => {
       if (!sandboxId) return;
 
       setSelectedFile(path);
       setIsLoadingFileContent(true);
+      setSidebarOpen(false);
 
       try {
         const response = await fetch(
@@ -192,35 +192,55 @@ export default function Home() {
     setFileContent('');
   }, []);
 
+  const sidebarContent = (
+    <FileBrowser
+      files={files}
+      onFileSelect={handleFileSelect}
+      selectedFile={selectedFile}
+      isLoading={isLoadingFiles}
+      systemPrompt={systemPrompt}
+      onSystemPromptChange={handleSystemPromptChange}
+    />
+  );
+
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-lg font-semibold">Executive Assistant</h1>
-        <UserSettings
-          userName={userName}
-          onNameChange={handleNameChange}
-          onClearChat={handleClearChat}
-          onResetSession={handleResetSession}
-        />
+      <header className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="flex items-center gap-2">
+          {/* Mobile menu button */}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              {sidebarContent}
+            </SheetContent>
+          </Sheet>
+          <h1 className="text-lg font-semibold">Executive Assistant</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <UserSettings
+            userName={userName}
+            onNameChange={handleNameChange}
+            onClearChat={handleClearChat}
+            onResetSession={handleResetSession}
+          />
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - File Browser */}
-        <aside className="w-64 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <FileBrowser
-            files={files}
-            onFileSelect={handleFileSelect}
-            selectedFile={selectedFile}
-            isLoading={isLoadingFiles}
-            systemPrompt={systemPrompt}
-            onSystemPromptChange={handleSystemPromptChange}
-          />
+        {/* Sidebar - Desktop only */}
+        <aside className="hidden md:block w-64 border-r flex-shrink-0">
+          {sidebarContent}
         </aside>
 
         {/* Chat area */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           <Chat
             messages={messages}
             onSendMessage={handleSendMessage}

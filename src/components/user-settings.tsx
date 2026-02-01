@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { User, Trash2, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface UserSettingsProps {
   userName: string;
@@ -29,55 +32,59 @@ export function UserSettings({
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 sm:gap-4">
       {isEditing ? (
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type="text"
             value={tempName}
             onChange={(e) => setTempName(e.target.value)}
-            className="px-2 py-1 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800"
+            className="h-8 w-32 sm:w-40"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSave();
               if (e.key === 'Escape') handleCancel();
             }}
           />
-          <button
-            onClick={handleSave}
-            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
+          <Button onClick={handleSave} size="sm" className="h-8">
             Save
-          </button>
-          <button
-            onClick={handleCancel}
-            className="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200"
-          >
+          </Button>
+          <Button onClick={handleCancel} size="sm" variant="outline" className="h-8">
             Cancel
-          </button>
+          </Button>
         </div>
       ) : (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setIsEditing(true)}
-          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          className="text-muted-foreground"
         >
-          {userName || 'Set name'}
-        </button>
+          <User className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">{userName || 'Set name'}</span>
+          <span className="sm:hidden">{userName ? userName.slice(0, 8) : 'Name'}</span>
+        </Button>
       )}
 
-      <div className="flex items-center gap-2">
-        <button
+      <div className="flex items-center gap-1 sm:gap-2">
+        <Button
           onClick={onClearChat}
-          className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          size="sm"
+          variant="outline"
+          className="h-8"
         >
-          Clear Chat
-        </button>
-        <button
+          <Trash2 className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Clear Chat</span>
+        </Button>
+        <Button
           onClick={onResetSession}
-          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+          size="sm"
+          variant="destructive"
+          className="h-8"
         >
-          Reset All
-        </button>
+          <RotateCcw className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Reset All</span>
+        </Button>
       </div>
     </div>
   );

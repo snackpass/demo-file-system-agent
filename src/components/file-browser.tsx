@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronRight, File, Folder } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 export interface FileNode {
   name: string;
@@ -16,25 +20,6 @@ interface FileBrowserProps {
   isLoading?: boolean;
   systemPrompt?: string;
   onSystemPromptChange?: (prompt: string) => void;
-}
-
-function FileIcon({ type }: { type: 'file' | 'directory' }) {
-  if (type === 'directory') {
-    return (
-      <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
 }
 
 function FileTreeNode({
@@ -62,27 +47,26 @@ function FileTreeNode({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 py-1 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded ${
-          isSelected ? 'bg-blue-100 dark:bg-blue-900' : ''
+        className={`flex items-center gap-2 py-1.5 px-2 cursor-pointer rounded-md transition-colors hover:bg-sidebar-accent ${
+          isSelected ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
         }`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
       >
-        {node.type === 'directory' && (
-          <svg
-            className={`w-3 h-3 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+        {node.type === 'directory' ? (
+          <ChevronRight
+            className={`h-4 w-4 text-sidebar-foreground/50 transition-transform ${
+              isExpanded ? 'rotate-90' : ''
+            }`}
+          />
+        ) : (
+          <span className="w-4" />
         )}
-        {node.type === 'file' && <span className="w-3" />}
-        <FileIcon type={node.type} />
+        {node.type === 'directory' ? (
+          <Folder className="h-4 w-4 text-amber-500" />
+        ) : (
+          <File className="h-4 w-4 text-sidebar-foreground/60" />
+        )}
         <span className="text-sm truncate">{node.name}</span>
       </div>
       {node.type === 'directory' && isExpanded && node.children && (
@@ -110,7 +94,6 @@ export function FileBrowser({
   systemPrompt,
   onSystemPromptChange,
 }: FileBrowserProps) {
-  const [activeTab, setActiveTab] = useState<'files' | 'prompt'>('files');
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(systemPrompt || '');
 
@@ -130,95 +113,80 @@ export function FileBrowser({
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab('files')}
-          className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'files'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-          }`}
-        >
-          Files
-        </button>
-        <button
-          onClick={() => setActiveTab('prompt')}
-          className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'prompt'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-          }`}
-        >
-          System Prompt
-        </button>
-      </div>
+    <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
+      <Tabs defaultValue="files" className="flex-1 flex flex-col">
+        <TabsList className="w-full rounded-none border-b border-sidebar-border bg-transparent p-0">
+          <TabsTrigger
+            value="files"
+            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar-primary data-[state=active]:bg-transparent"
+          >
+            Files
+          </TabsTrigger>
+          <TabsTrigger
+            value="prompt"
+            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-sidebar-primary data-[state=active]:bg-transparent"
+          >
+            System Prompt
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {activeTab === 'files' ? (
-          <div className="p-2">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-20">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              </div>
-            ) : files.length === 0 ? (
-              <p className="text-sm text-gray-500 p-2">No files yet</p>
-            ) : (
-              files.map((node) => (
-                <FileTreeNode
-                  key={node.path}
-                  node={node}
-                  onFileSelect={onFileSelect}
-                  selectedFile={selectedFile}
-                />
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="p-3 flex flex-col h-full">
-            {isEditing ? (
-              <>
-                <textarea
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="flex-1 min-h-[200px] text-xs font-mono p-2 border border-gray-300 dark:border-gray-600 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                  placeholder="Enter system prompt..."
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="flex-1 px-3 py-1.5 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
+        <TabsContent value="files" className="flex-1 m-0">
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-20">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sidebar-primary"></div>
                 </div>
-              </>
-            ) : (
-              <>
-                <pre className="flex-1 text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono leading-relaxed overflow-auto">
+              ) : files.length === 0 ? (
+                <p className="text-sm text-sidebar-foreground/60 p-2">No files yet</p>
+              ) : (
+                files.map((node) => (
+                  <FileTreeNode
+                    key={node.path}
+                    node={node}
+                    onFileSelect={onFileSelect}
+                    selectedFile={selectedFile}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="prompt" className="flex-1 m-0 flex flex-col">
+          {isEditing ? (
+            <div className="flex-1 flex flex-col p-3">
+              <textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="flex-1 min-h-[200px] text-xs font-mono p-2 border border-sidebar-border rounded resize-none focus:outline-none focus:ring-2 focus:ring-sidebar-primary bg-sidebar text-sidebar-foreground"
+                placeholder="Enter system prompt..."
+              />
+              <div className="flex gap-2 mt-2">
+                <Button onClick={handleSave} size="sm" className="flex-1">
+                  Save
+                </Button>
+                <Button onClick={handleCancel} size="sm" variant="outline" className="flex-1">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                <pre className="text-xs text-sidebar-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
                   {systemPrompt || 'No system prompt configured'}
                 </pre>
                 {onSystemPromptChange && (
-                  <button
-                    onClick={handleEdit}
-                    className="mt-2 px-3 py-1.5 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-                  >
+                  <Button onClick={handleEdit} size="sm" variant="outline" className="mt-3 w-full">
                     Edit Prompt
-                  </button>
+                  </Button>
                 )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
+              </div>
+            </ScrollArea>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
